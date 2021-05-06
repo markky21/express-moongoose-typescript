@@ -5,12 +5,12 @@ config();
 export const ENV = {
   MONGO_URI: process.env.MONGO_URI as string,
   NODE_ENV: (process.env.NODE_ENV as string) || "development",
-  SESSION_SECRET: process.env.SESSION_SECRET as string,
+  JWT_SECRET: process.env.JWT_SECRET as string,
 };
 
 (() =>
   cleanEnv(ENV, {
     MONGO_URI: str(),
     NODE_ENV: str(),
-    SESSION_SECRET: str(),
+    JWT_SECRET: str(),
   }))();

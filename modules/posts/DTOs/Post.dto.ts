@@ -1,10 +1,10 @@
 import { IsNotEmpty, IsString } from "class-validator";
 import { Post } from "../posts.model";
 
-export class PostDto implements Post {
-  @IsNotEmpty()
-  @IsString()
-  public author: string;
+export class PostDto implements Omit<Post, "author"> {
+  // @IsNotEmpty()
+  // @IsString()
+  // public author: string;
 
   @IsNotEmpty()
   @IsString()

@@ -1,15 +1,22 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import {
-  checkPasswordMatching,
-  findUserByEmail,
-  registerUser,
-} from "./users.service";
+  Strategy as JWTStrategy,
+  ExtractJwt as ExtractJWT,
+} from "passport-jwt";
 import {
   userWithThatEmailAlreadyExistsException,
   wrongCredentialsException,
-} from "./users.exceptions";
-import express from "express";
+} from "../modules/users/users.exceptions";
+import { UserDto } from "../modules/users/DTOs/User.dto";
+import { ENV } from "../config/env.config";
+import { UserDocument, userModel } from "../modules/users/users.schema";
+
+declare global {
+  namespace Express {
+    interface User extends UserDocument {}
+  }
+}
 
 passport.use(
   "login",
@@ -18,20 +25,15 @@ passport.use(
       usernameField: "email",
       passwordField: "password",
     },
-    (email, password, done) => {
-      findUserByEmail(email)
-        .then((u) => u?.toObject())
+    (email, password, done): void => {
+      userModel
+        .findUserByEmail(email)
         .then(async (user) => {
           if (!user) {
             return done(wrongCredentialsException(), false);
           }
 
-          const isPasswordMatching = await checkPasswordMatching(
-            password,
-            user.password as string
-          );
-
-          if (!isPasswordMatching) {
+          if (!(await user.isValidPassword(password))) {
             return done(wrongCredentialsException(), false);
           }
 
@@ -51,20 +53,19 @@ passport.use(
       passReqToCallback: true,
     },
     async (req, email, password, done) => {
-      const { email: e, password: p, ...userData } = req.body;
-      findUserByEmail(email)
-        .then((u) => u?.toObject())
+      const userData: UserDto = req.body;
+      userModel
+        .findUserByEmail(email)
         .then(async (user) => {
           if (user) {
             return done(userWithThatEmailAlreadyExistsException(email), false);
           }
 
-          registerUser({
-            email,
-            password,
-            name: email,
-            ...userData,
-          }).then((user) => done(null, user));
+          await userModel
+            .create(userData)
+            .then((u) => u.toObject())
+            .then(({ password, ...user }) => user)
+            .then((user) => done(null, user));
         })
         .catch((err) => done(err));
     }
@@ -78,3 +79,19 @@ passport.serializeUser(function (user: Express.User, done) {
 passport.deserializeUser(function (user: Express.User, done) {
   done(null, user);
 });
+
+passport.use(
+  new JWTStrategy(
+    {
+      secretOrKey: ENV.JWT_SECRET,
+      jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+    },
+    async (token, done) => {
+      try {
+        return done(null, token.user);
+      } catch (error) {
+        done(error);
+      }
+    }
+  )
+);

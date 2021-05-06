@@ -11,3 +11,8 @@ export function initDatabase(): void {
     useCreateIndex: true,
   });
 }
+
+export enum MongoDBSchema {
+  USER = "User",
+  POST = "Post",
+}

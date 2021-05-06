@@ -1,4 +1,4 @@
-import { Document, Model, model, Schema } from "mongoose";
+import { UserDocument } from "../users/users.schema";
 
 export enum PostsRoutes {
   ROOT = "/",
@@ -9,26 +9,13 @@ export enum PostsRoutes {
 }
 
 export interface Post {
-  author: string;
+  author: UserDocument["_id"];
   content: string;
   title: string;
 }
 
-export type PostDocument = Post & Document;
-
-const postSchema = new Schema<PostDocument, Model<PostDocument>>({
-  author: {
-    type: String,
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-  },
-});
-
-export const PostModel = model("Post", postSchema);
+export interface PostPopulated {
+  author: UserDocument;
+  content: string;
+  title: string;
+}
